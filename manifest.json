@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "br-mediaapi",
+  "name": "BR-MediaAPI",
+  "author": "Rusty",
+  "description": "Shared BOXROOM framework for custom physical media types, libraries, cases, shelves, and unplaced media boxes.",
+  "repository": "https://github.com/MidgetBrony/BR-MediaAPI",
+  "requirements": { "melonLoader": "0.7.0" },
+  "dependencies": [
+    {
+      "manifest": "https://raw.githubusercontent.com/MidgetBrony/ModsPanel/refs/heads/master/manifest.json",
+      "minimumVersion": "2.2.1",
+      "required": true
+    }
+  ],
+  "release": {
+    "provider": "github",
+    "asset": "BR-MediaAPI.zip",
+    "destination": "Mods"
+  }
+}

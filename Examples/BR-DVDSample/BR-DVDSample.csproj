@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>BR_DVDSample</AssemblyName>
+    <RootNamespace>BR_DVDSample</RootNamespace>
+    <DeployToGame Condition="'$(DeployToGame)' == ''">false</DeployToGame>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\BR-MediaAPI.csproj" />
+    <Reference Include="ModsPanel"><HintPath>..\..\..\ModsPanel\bin\Release\netstandard2.1\ModsPanel.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp"><HintPath>$(GamePath)\BOXROOM_Data\Managed\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(GamePath)\BOXROOM_Data\Managed\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(GamePath)\BOXROOM_Data\Managed\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(GamePath)\BOXROOM_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule"><HintPath>$(GamePath)\BOXROOM_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.PhysicsModule"><HintPath>$(GamePath)\BOXROOM_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="MelonLoader"><HintPath>$(GamePath)\MelonLoader\net35\MelonLoader.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>$(GamePath)\BOXROOM_Data\Managed\Newtonsoft.Json.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+  <Target Name="DeploySample" AfterTargets="Build" Condition="'$(DeployToGame)' == 'true'">
+    <MakeDir Directories="$(GamePath)\Mods" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GamePath)\Mods" SkipUnchangedFiles="true" />
+  </Target>
+</Project>
