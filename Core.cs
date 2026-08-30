@@ -11,7 +11,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.0.0", "Rusty", null)]
+[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.0.1", "Rusty", null)]
 [assembly: MelonGame("NestedLoop", "BOXROOM")]
 [assembly: MelonAdditionalDependencies("ModsPanel")]
 

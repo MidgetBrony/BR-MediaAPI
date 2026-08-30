@@ -16,6 +16,7 @@
   "release": {
     "provider": "github",
     "asset": "BR-MediaAPI.zip",
+    "checksumAsset": "SHA256SUMS.txt",
     "destination": "Mods"
   }
 }
