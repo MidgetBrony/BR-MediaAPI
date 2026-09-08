@@ -121,6 +121,8 @@ namespace BR_MediaAPI
         private IMediaItem item;
         private PlaceableSaveState saveState;
         private Texture2D coverTexture;
+        private MediaRef reservedRef;
+        private bool restoringPlacedItem;
         public IMediaItem MediaItem { get { Restore(); return item; } }
         public PlaceableSaveState SaveState => saveState;
 
@@ -128,6 +130,7 @@ namespace BR_MediaAPI
         private void OnDestroy()
         {
             PlayerInteractionTool.SpawnedMediaDemanded -= OnSpawnedMediaDemanded;
+            ClearReservation();
             if (coverTexture != null) Destroy(coverTexture);
         }
 
@@ -151,6 +154,9 @@ namespace BR_MediaAPI
             if (data == null) return;
             mediaType = data.MediaType;
             mediaId = data.MediaId;
+            restoringPlacedItem = true;
+            reservedRef = new MediaRef((eMediaType)mediaType, mediaId);
+            if (reservedRef.IsValid()) PlaceableMediaContainer.ReserveMedia(reservedRef);
             Restore();
             ApplyCover();
         }
@@ -159,13 +165,33 @@ namespace BR_MediaAPI
         public void RefreshSaveStateReference(PlaceableSaveState state) => saveState = state;
         public void OnPlaced() { Restore(); if (item != null) { item.IsSpawned = true; item.IsInHand = false; ApplyCover(); } }
         public void OnPickedUp() { Restore(); if (item != null) item.IsInHand = true; }
-        public void OnDeleted() { Restore(); if (item != null) { item.IsSpawned = false; item.IsInHand = false; } }
+        public void OnDeleted()
+        {
+            Restore();
+            if (item != null) { item.IsSpawned = false; item.IsInHand = false; }
+            MediaApi.NotifyMediaAvailabilityChanged();
+        }
 
         private void Restore()
         {
-            if (item != null || string.IsNullOrWhiteSpace(mediaId)) return;
-            if (MediaApi.TryGet((eMediaType)mediaType, out MediaTypeDefinition definition))
+            if (item == null && !string.IsNullOrWhiteSpace(mediaId) &&
+                MediaApi.TryGet((eMediaType)mediaType, out MediaTypeDefinition definition))
                 item = definition.Library.GetItemSync(new MediaRef((eMediaType)mediaType, mediaId));
+
+            if (item != null && restoringPlacedItem)
+            {
+                item.IsSpawned = true;
+                item.IsInHand = false;
+                restoringPlacedItem = false;
+                ClearReservation();
+            }
+        }
+
+        private void ClearReservation()
+        {
+            if (!reservedRef.IsValid()) return;
+            PlaceableMediaContainer.UnreserveMedia(reservedRef);
+            reservedRef = default;
         }
 
         private void ApplyCover()

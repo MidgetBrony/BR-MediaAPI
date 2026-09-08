@@ -22,6 +22,7 @@ namespace BR_MediaAPI
         private static bool librariesConfigured;
 
         public static event Action<MediaTypeDefinition> Registered;
+        internal static event Action MediaAvailabilityChanged;
 
         public static IReadOnlyCollection<MediaTypeDefinition> RegisteredTypes
         {
@@ -99,6 +100,7 @@ namespace BR_MediaAPI
         }
 
         internal static void SetLogger(MelonLogger.Instance instance) => logger = instance;
+        internal static void NotifyMediaAvailabilityChanged() => MediaAvailabilityChanged?.Invoke();
 
         internal static void AttachRegisteredLibraries()
         {

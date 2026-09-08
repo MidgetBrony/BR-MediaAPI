@@ -2,6 +2,7 @@ using HarmonyLib;
 using MelonLoader;
 using SteamShelf;
 using SteamShelf.Media;
+using SteamShelf.Input;
 using SteamShelf.Placeables;
 using SteamShelf.PlayerTools;
 using SteamShelf.Save;
@@ -11,7 +12,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.0.1", "Rusty", null)]
+[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.0.2", "Rusty", null)]
 [assembly: MelonGame("NestedLoop", "BOXROOM")]
 [assembly: MelonAdditionalDependencies("ModsPanel")]
 
@@ -29,9 +30,12 @@ namespace BR_MediaAPI
 
         public override void OnDeinitializeMelon()
         {
+            CustomMediaBoxSearch.Dispose();
             PlaceableManager.PlaceableDataLoaded -= MediaApi.RegisterSourceBoxes;
             SharedMediaCasePrefabs.Unload();
         }
+
+        public override void OnUpdate() => CustomMediaBoxSearch.Update();
     }
 
     [HarmonyPatch(typeof(MediaBootstrap), "Initialize")]
@@ -190,6 +194,20 @@ namespace BR_MediaAPI
         {
             PlayerInteractionTool tool = UnityEngine.Object.FindFirstObjectByType<PlayerInteractionTool>();
             return tool?.CurrentHeldMediaItem == null || !MediaApi.TryOpen(tool.CurrentHeldMediaItem);
+        }
+    }
+
+    // Some consumer-owned props (such as books) implement their own OnDeleted
+    // method, so they cannot call back into the API directly. After a confirmed
+    // deletion input, re-evaluate every API source box; its normal spawned,
+    // in-hand, and reservation checks decide whether anything should be added.
+    [HarmonyPatch(typeof(DeletionTool), nameof(DeletionTool.OnUpdate))]
+    internal static class RefreshCustomSourceBoxesAfterDeletePatch
+    {
+        private static void Postfix(PlayerInputContext playerInputContext)
+        {
+            if (playerInputContext != null && playerInputContext.PrimaryPressedThisFrame)
+                MediaApi.NotifyMediaAvailabilityChanged();
         }
     }
 }

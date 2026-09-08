@@ -13,6 +13,8 @@ BR-MediaAPI lets BOXROOM mods add genuinely new media kinds—movies, records, b
 
 By default, the API also creates a native **Unplaced Media Box** in BOXROOM's furniture catalogue. It borrows the built-in CD Album Box presentation and automatically fills it with every available, unplaced item from the registered library. Media mods do not implement catalogue registration, container filling, reservations, refill, or box save/load.
 
+Look at a custom source box and press BOXROOM's Secondary action to open the native search screen. Search results cover that box's registered library, identify already spawned items, and can retrieve an existing placed case just like the built-in Game Box search. Source boxes also track room-load restoration and deletions, so restored or placed media is not duplicated and deleted media becomes available again immediately.
+
 The ID and key become save-file contracts. Never change or reuse them after release. Publish your chosen ID in your README so other modders can avoid it.
 
 ## Smallest registration

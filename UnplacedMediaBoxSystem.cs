@@ -98,6 +98,7 @@ namespace BR_MediaAPI
         private bool initialized;
         private bool canFill;
         public PlaceableSaveState SaveState => saveState;
+        internal MediaTypeDefinition Definition { get { ResolveDefinition(); return definition; } }
 
         internal void SetDefinition(MediaTypeDefinition owner)
         {
@@ -105,7 +106,11 @@ namespace BR_MediaAPI
         }
 
         private void Awake() => containers = GetComponentsInChildren<PlaceableMediaContainer>(true);
-        private void OnDestroy() => Shelf.OnShelfPutAway = (Action)Delegate.Remove(Shelf.OnShelfPutAway, new Action(Fill));
+        private void OnDestroy()
+        {
+            Shelf.OnShelfPutAway = (Action)Delegate.Remove(Shelf.OnShelfPutAway, new Action(Fill));
+            MediaApi.MediaAvailabilityChanged -= Fill;
+        }
 
         public void OnPlaced()
         {
@@ -113,11 +118,14 @@ namespace BR_MediaAPI
             InitializeContainers();
             Shelf.OnShelfPutAway = (Action)Delegate.Remove(Shelf.OnShelfPutAway, new Action(Fill));
             Shelf.OnShelfPutAway = (Action)Delegate.Combine(Shelf.OnShelfPutAway, new Action(Fill));
+            MediaApi.MediaAvailabilityChanged -= Fill;
+            MediaApi.MediaAvailabilityChanged += Fill;
         }
 
         public void OnPickedUp()
         {
             Shelf.OnShelfPutAway = (Action)Delegate.Remove(Shelf.OnShelfPutAway, new Action(Fill));
+            MediaApi.MediaAvailabilityChanged -= Fill;
             Clear();
         }
 
@@ -130,6 +138,8 @@ namespace BR_MediaAPI
             InitializeContainers();
             Shelf.OnShelfPutAway = (Action)Delegate.Remove(Shelf.OnShelfPutAway, new Action(Fill));
             Shelf.OnShelfPutAway = (Action)Delegate.Combine(Shelf.OnShelfPutAway, new Action(Fill));
+            MediaApi.MediaAvailabilityChanged -= Fill;
+            MediaApi.MediaAvailabilityChanged += Fill;
         }
 
         public void LinkSaveState(PlaceableSaveState state) => saveState = state;
