@@ -2,6 +2,8 @@
 
 BR-MediaAPI lets BOXROOM mods add genuinely new media kinds—movies, records, books, VHS tapes, magazines, or anything else—without each mod maintaining its own patches for the game's built-in two-value media enum.
 
+It also provides visual-only overrides for existing media. A mod can give selected native Steam games a cartridge, disc, or other physical model while BR-MediaAPI preserves BOXROOM's original media identity, saves, pickup, placement, inspection, and launch behavior.
+
 ## What a media mod provides
 
 1. A permanent numeric ID (`1000` or higher) and unique reverse-domain key.
@@ -92,6 +94,22 @@ definition.Inspect = new MediaInspectDefinition
 
 Do not reuse one Unity transform for all three contexts. BOXROOM applies different parent rotations, scales, and camera poses to shelf, loose, and held objects. AssetBundle authors should export a dedicated prefab for each context, with its root transform already authored for that context. The API handles behavior; the media mod owns physical art and orientation.
 
+## Visual overrides for existing media
+
+Use a visual override when the media already belongs to BOXROOM and only its physical presentation should change. The factory is called for shelf, loose/placement, held, and inspection presentations:
+
+```csharp
+MediaApi.RegisterVisualOverride(new MediaVisualOverrideDefinition
+{
+    Key = "com.yourname.nes-cartridges",
+    Priority = 100,
+    Matches = item => item is SteamGameData game && IsNesGame(game),
+    CreateVisual = context => CartridgeAssets.Create(context.Item, context.Usage)
+});
+```
+
+The returned object is parented to the native presentation target. Its colliders are disabled because BOXROOM's original object remains authoritative for interaction and placement. Use `context.Usage` to choose the correct transform for `Shelf`, `Loose`, `Held`, or `Inspect`. `context.AnchorCenter`, `context.AnchorBounds`, and `context.AnchorWorldBounds` expose the original presentation geometry for centering or base alignment. BOXROOM's placement preview remains a temporary clone of the `Loose` presentation and keeps the native placeable's saved/player-controlled scale. Call `MediaApi.UnregisterVisualOverride(key)` during mod shutdown.
+
 The default source box will be named `Movies Box` in this example. Customize or disable it only when needed:
 
 ```csharp
@@ -128,7 +146,7 @@ Copy `BR_MediaAPI.dll`, `brmediaapi_assets`, and `ModsPanel.dll` to BOXROOM's `M
 - Registers every custom `IMediaLibrary` at BOXROOM's correct bootstrap point.
 - Routes shelf creation and custom media acceptance centrally.
 - Restores optional custom placeables from RoomState.
-- Leaves Steam games and CD albums completely on BOXROOM's original paths.
+- Leaves Steam games and CD albums on BOXROOM's original data, save, interaction, and action paths; optional registered overrides can replace visuals only.
 
 BR-BookSystem can migrate from its historical ID `2` to this API in a compatibility release, but existing saves need an explicit ID migration rather than silently changing the value.
 

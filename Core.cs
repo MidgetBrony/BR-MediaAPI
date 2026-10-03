@@ -12,7 +12,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.0.2", "Rusty", null)]
+[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.1.7", "Rusty", null)]
 [assembly: MelonGame("NestedLoop", "BOXROOM")]
 [assembly: MelonAdditionalDependencies("ModsPanel")]
 
@@ -25,7 +25,7 @@ namespace BR_MediaAPI
             MediaApi.SetLogger(LoggerInstance);
             SharedMediaCasePrefabs.Load();
             PlaceableManager.PlaceableDataLoaded += MediaApi.RegisterSourceBoxes;
-            LoggerInstance.Msg("Ready. Custom media types may now register through MediaApi.Register().");
+            LoggerInstance.Msg("Ready. Custom media types and native media visual overrides may now register through MediaApi.");
         }
 
         public override void OnDeinitializeMelon()
@@ -33,6 +33,7 @@ namespace BR_MediaAPI
             CustomMediaBoxSearch.Dispose();
             PlaceableManager.PlaceableDataLoaded -= MediaApi.RegisterSourceBoxes;
             SharedMediaCasePrefabs.Unload();
+            NativeMediaVisualOverrides.RestoreAll();
         }
 
         public override void OnUpdate() => CustomMediaBoxSearch.Update();

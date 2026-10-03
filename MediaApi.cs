@@ -17,6 +17,7 @@ namespace BR_MediaAPI
         private static readonly Dictionary<int, MediaTypeDefinition> ById = new Dictionary<int, MediaTypeDefinition>();
         private static readonly Dictionary<string, MediaTypeDefinition> ByKey = new Dictionary<string, MediaTypeDefinition>(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, MediaTypeDefinition> ByPlaceableId = new Dictionary<string, MediaTypeDefinition>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, MediaVisualOverrideDefinition> VisualOverrides = new Dictionary<string, MediaVisualOverrideDefinition>(StringComparer.OrdinalIgnoreCase);
         private static MelonLogger.Instance logger;
         private static bool routerReady;
         private static bool librariesConfigured;
@@ -27,6 +28,58 @@ namespace BR_MediaAPI
         public static IReadOnlyCollection<MediaTypeDefinition> RegisteredTypes
         {
             get { lock (Sync) return ById.Values.ToArray(); }
+        }
+
+        public static IReadOnlyCollection<MediaVisualOverrideDefinition> RegisteredVisualOverrides
+        {
+            get { lock (Sync) return VisualOverrides.Values.ToArray(); }
+        }
+
+        /// <summary>
+        /// Registers a visual-only replacement for existing media, including BOXROOM's
+        /// built-in Steam games. This does not replace its media type, save data or actions.
+        /// </summary>
+        public static void RegisterVisualOverride(MediaVisualOverrideDefinition definition)
+        {
+            if (definition == null) throw new ArgumentNullException(nameof(definition));
+            definition.Validate();
+            lock (Sync)
+            {
+                if (VisualOverrides.ContainsKey(definition.Key))
+                    throw new InvalidOperationException($"Media visual override '{definition.Key}' is already registered.");
+                VisualOverrides.Add(definition.Key, definition);
+            }
+            logger?.Msg($"Registered media visual override '{definition.Key}'.");
+            NativeMediaVisualOverrides.RefreshAll();
+        }
+
+        public static bool UnregisterVisualOverride(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return false;
+            bool removed;
+            lock (Sync) removed = VisualOverrides.Remove(key);
+            if (removed) NativeMediaVisualOverrides.Remove(key);
+            return removed;
+        }
+
+        internal static bool TryGetVisualOverride(IMediaItem item, out MediaVisualOverrideDefinition definition)
+        {
+            definition = null;
+            if (item == null) return false;
+            MediaVisualOverrideDefinition[] candidates;
+            lock (Sync) candidates = VisualOverrides.Values.OrderByDescending(value => value.Priority).ToArray();
+            foreach (MediaVisualOverrideDefinition candidate in candidates)
+            {
+                try
+                {
+                    if (candidate.Matches(item)) { definition = candidate; return true; }
+                }
+                catch (Exception ex)
+                {
+                    logger?.Warning($"Media visual override '{candidate.Key}' matcher failed: {ex.Message}");
+                }
+            }
+            return false;
         }
 
         public static void Register(MediaTypeDefinition definition)

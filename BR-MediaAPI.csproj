@@ -7,7 +7,7 @@
 		<LangVersion>default</LangVersion>
 		<IsPackable>false</IsPackable>
 		<AssemblyVersion>1.0.2.0</AssemblyVersion>
-		<FileVersion>1.0.2.0</FileVersion>
+		<FileVersion>1.1.7.0</FileVersion>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<AssemblyName>BR_MediaAPI</AssemblyName>
 		<LangVersion>latest</LangVersion>
@@ -467,6 +467,8 @@
 		<Compile Include="MediaLibraryFolderOptions.cs" />
 		<Compile Include="MediaInspectDefinition.cs" />
 		<Compile Include="MediaVisualDefinition.cs" />
+		<Compile Include="MediaVisualOverrideDefinition.cs" />
+		<Compile Include="NativeMediaVisualOverrides.cs" />
 		<Compile Include="CustomMediaBoxSearch.cs" />
 		<Content Include="Assets\brmediaapi_assets"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
 		<Content Include="Directory.Build.props" />
