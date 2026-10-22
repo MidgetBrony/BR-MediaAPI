@@ -4,6 +4,23 @@ BR-MediaAPI lets BOXROOM mods add genuinely new media kinds—movies, records, b
 
 It also provides visual-only overrides for existing media. A mod can give selected native Steam games a cartridge, disc, or other physical model while BR-MediaAPI preserves BOXROOM's original media identity, saves, pickup, placement, inspection, and launch behavior.
 
+## Media menu tabs
+
+Registered media types get a library settings tab beside Games, CDs and Videos.
+Pages use the native CD library card's background, heading, fonts, separators
+and action-button style. They show the library count and, when `LibraryFolder`
+is supplied, the saved path, Browse, status, Refresh and optional Open Folder.
+There is no item browser, search box or pagination.
+
+`LibraryFolder.SettingsSection` can supply additional ModsPanel controls below
+the library controls. The page scrolls and follows controller selection. A mod
+can set that section's `VisibleInModSettings` to false after hosting it here,
+while retaining its saved preferences and callbacks.
+
+Native tabs, media identities, saved paths and existing Mod Settings controls
+remain intact. Custom captions are created without native localization bindings.
+In-game visual and controller validation of this revision is pending.
+
 ## What a media mod provides
 
 1. A permanent numeric ID (`1000` or higher) and unique reverse-domain key.

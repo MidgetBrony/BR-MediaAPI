@@ -29,6 +29,8 @@ namespace BR_MediaAPI
         public Func<string> GetStatus { get; set; }
 
         public bool ShowOpenFolderButton { get; set; } = true;
+        /// <summary>Optional additional settings rendered below the library controls.</summary>
+        public ModsPanel.ModSection SettingsSection { get; set; }
 
         internal void Validate(MediaTypeDefinition definition)
         {
@@ -72,7 +74,7 @@ namespace BR_MediaAPI
             return Singleton<SaveManager>.Instance.Settings.GetValue(options.SettingId, options.DefaultPath ?? string.Empty);
         }
 
-        private static void SetPathAndReload(MediaTypeDefinition definition, string path)
+        internal static void SetPathAndReload(MediaTypeDefinition definition, string path)
         {
             MediaLibraryFolderOptions options = definition.LibraryFolder;
             if (Singleton<SaveManager>.HasInstance())
@@ -83,7 +85,7 @@ namespace BR_MediaAPI
             options.Reload();
         }
 
-        private static string GetStatus(MediaTypeDefinition definition)
+        internal static string GetStatus(MediaTypeDefinition definition)
         {
             MediaLibraryFolderOptions options = definition.LibraryFolder;
             string path = GetPath(definition);
@@ -91,7 +93,7 @@ namespace BR_MediaAPI
             return options.GetStatus?.Invoke() ?? (Directory.Exists(path) ? "Folder ready" : "Folder not found");
         }
 
-        private static void OpenFolder(MediaTypeDefinition definition)
+        internal static void OpenFolder(MediaTypeDefinition definition)
         {
             string path = GetPath(definition);
             if (!string.IsNullOrWhiteSpace(path) && Directory.Exists(path)) FileExtensions.OpenDirectory(path);

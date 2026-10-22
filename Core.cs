@@ -12,7 +12,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.1.7", "Rusty", null)]
+[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.1.14", "Rusty", null)]
 [assembly: MelonGame("NestedLoop", "BOXROOM")]
 [assembly: MelonAdditionalDependencies("ModsPanel")]
 
@@ -30,13 +30,18 @@ namespace BR_MediaAPI
 
         public override void OnDeinitializeMelon()
         {
+            MediaTabsRuntime.Dispose();
             CustomMediaBoxSearch.Dispose();
             PlaceableManager.PlaceableDataLoaded -= MediaApi.RegisterSourceBoxes;
             SharedMediaCasePrefabs.Unload();
             NativeMediaVisualOverrides.RestoreAll();
         }
 
-        public override void OnUpdate() => CustomMediaBoxSearch.Update();
+        public override void OnUpdate()
+        {
+            CustomMediaBoxSearch.Update();
+            MediaTabsRuntime.Tick();
+        }
     }
 
     [HarmonyPatch(typeof(MediaBootstrap), "Initialize")]
