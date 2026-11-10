@@ -12,7 +12,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.1.14", "Rusty", null)]
+[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.1.15", "Rusty", null)]
 [assembly: MelonGame("NestedLoop", "BOXROOM")]
 [assembly: MelonAdditionalDependencies("ModsPanel")]
 
@@ -124,7 +124,9 @@ namespace BR_MediaAPI
     [HarmonyPatch(typeof(PlayerInteractionTool), "OnMediaInHandChanged")]
     internal static class CustomShelfPickupPatch
     {
-        private static bool Prefix(PlayerInteractionTool __instance, IMediaItem item)
+        private static bool Prefix(PlayerInteractionTool __instance, IMediaItem item,
+            ref GameObject ___heldPrefab, ref PlaceableSaveState ___heldSaveState,
+            ref PlacementTag ___currentLookingAtPlaceable, ref IMediaItem ___currentHeldMediaItem)
         {
             if (item == null || !MediaApi.TryGet(item.Ref.Type, out MediaTypeDefinition definition) || !definition.UseGenericInteractionLifecycle || definition.LoosePrefabFactory == null) return true;
             GameObject instance = definition.CreateLoosePrefab();
@@ -133,9 +135,39 @@ namespace BR_MediaAPI
             ICustomMediaProp prop = instance.GetComponents<MonoBehaviour>().OfType<ICustomMediaProp>().FirstOrDefault();
             if (tag == null || prop == null) { UnityEngine.Object.Destroy(instance); return false; }
             prop.ApplyMedia(item);
-            AccessTools.Method(typeof(PlayerInteractionTool), "PickupMediaProp")?.Invoke(__instance, new object[] { tag, instance });
+            ___heldSaveState = null;
+            ___currentHeldMediaItem = item;
+            ___heldPrefab = instance;
+            item.IsInHand = true;
+            instance.SetActive(false);
+
+            object controller = AccessTools.Field(typeof(PlayerTool), "controller")?.GetValue(__instance);
+            object registry = GetMember(controller, "Registry");
+            object placer = GetMember(controller, "ObjectPlacer");
+            object settings = AccessTools.Method(registry?.GetType(), "Get", new[] { typeof(PlacementType) })?.Invoke(registry, new object[] { tag.PlacementType });
+            Material valid = AccessTools.Field(typeof(PlayerInteractionTool), "validPreviewMaterial")?.GetValue(__instance) as Material;
+            Material invalid = AccessTools.Field(typeof(PlayerInteractionTool), "invalidPreviewMaterial")?.GetValue(__instance) as Material;
+            MethodInfo begin = AccessTools.Method(placer?.GetType(), "Begin");
+            if (controller == null || registry == null || placer == null || settings == null || begin == null)
+            {
+                instance.SetActive(true);
+                ___heldPrefab = null;
+                ___heldSaveState = null;
+                ___currentHeldMediaItem = null;
+                item.IsInHand = false;
+                UnityEngine.Object.Destroy(instance);
+                return false;
+            }
+            begin.Invoke(placer, new object[] { instance, settings, valid, invalid });
+            ___currentLookingAtPlaceable = null;
             GenericHeldMediaVisual.Show(__instance, item, definition);
             return false;
+        }
+
+        private static object GetMember(object instance, string name)
+        {
+            if (instance == null) return null;
+            return AccessTools.Property(instance.GetType(), name)?.GetValue(instance) ?? AccessTools.Field(instance.GetType(), name)?.GetValue(instance);
         }
     }
 

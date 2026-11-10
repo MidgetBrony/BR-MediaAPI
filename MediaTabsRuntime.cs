@@ -25,6 +25,7 @@ namespace BR_MediaAPI
         private static readonly FieldInfo LeftExits = typeof(UI_NavigationGroup).GetField("exitsLeft", Fields);
         private static readonly FieldInfo RightExits = typeof(UI_NavigationGroup).GetField("exitsRight", Fields);
         private static readonly List<Page> Pages = new List<Page>();
+        private static MediaContainer mediaContainer;
         private static UI_TabbedContainer tabs;
         private static Button[] originalButtons;
         private static UI_Container[] originalScreens;
@@ -44,6 +45,7 @@ namespace BR_MediaAPI
                     MediaContainer container = Resources.FindObjectsOfTypeAll<MediaContainer>()
                         .FirstOrDefault(value => value != null && value.gameObject.scene.IsValid());
                     if (container == null) return;
+                    mediaContainer = container;
                     tabs = MediaTabs.GetValue(container) as UI_TabbedContainer;
                     if (tabs == null) return;
                     originalButtons = (Button[])Buttons.GetValue(tabs);
@@ -120,7 +122,7 @@ namespace BR_MediaAPI
             }
             foreach (var pair in sidebarExits) if (pair.Key != null) RightExits.SetValue(pair.Key, pair.Value);
             foreach (Page page in Pages) page.Destroy();
-            Pages.Clear(); sidebarExits.Clear(); tabs = null;
+            Pages.Clear(); sidebarExits.Clear(); tabs = null; mediaContainer = null;
         }
 
         private sealed class Page
@@ -146,7 +148,6 @@ namespace BR_MediaAPI
                 if (nativeCard == null) throw new InvalidOperationException("Native CD library card not found.");
                 // MusicEX can host these objects in a scroll view. Resolve the
                 // native serialized bindings rather than their original paths.
-                MediaContainer mediaContainer = originalScreens[1].GetComponentInParent<MediaContainer>();
                 bodyTemplate = (TMP_Text)typeof(MediaContainer).GetField("cdCountLabel", Fields).GetValue(mediaContainer);
                 UI_AlbumLibraryPathDisplay albumPath = originalScreens[1].GetComponentInChildren<UI_AlbumLibraryPathDisplay>(true);
                 if (bodyTemplate == null || albumPath == null)

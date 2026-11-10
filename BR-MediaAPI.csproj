@@ -7,7 +7,8 @@
 		<LangVersion>default</LangVersion>
 		<IsPackable>false</IsPackable>
 		<AssemblyVersion>1.0.2.0</AssemblyVersion>
-		<FileVersion>1.1.14.0</FileVersion>
+		<FileVersion>1.1.15.0</FileVersion>
+		<InformationalVersion>1.1.15</InformationalVersion>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<AssemblyName>BR_MediaAPI</AssemblyName>
 		<LangVersion>latest</LangVersion>
