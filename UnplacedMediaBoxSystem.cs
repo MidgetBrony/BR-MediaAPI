@@ -64,6 +64,24 @@ namespace BR_MediaAPI
             manager.AllPlaceables.Insert(0, data);
         }
 
+        internal static void Unregister(MediaTypeDefinition definition)
+        {
+            if (definition == null || !definition.CreateUnplacedMediaBox) return;
+
+            Definitions.Remove(definition.SourceBoxId);
+            if (!BoxData.TryGetValue(definition.Id, out PlaceableData data)) return;
+            BoxData.Remove(definition.Id);
+
+            if (Singleton<PlaceableManager>.HasInstance())
+            {
+                PlaceableManager manager = Singleton<PlaceableManager>.Instance;
+                var mods = AccessTools.Field(typeof(PlaceableManager), "modsPlaceables")?.GetValue(manager) as List<PlaceableData>;
+                mods?.Remove(data);
+                manager.AllPlaceables?.Remove(data);
+            }
+            if (data != null) UnityEngine.Object.Destroy(data);
+        }
+
         internal static bool TryGetByBoxId(string id, out MediaTypeDefinition definition) =>
             Definitions.TryGetValue(id ?? string.Empty, out definition);
 

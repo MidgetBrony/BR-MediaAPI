@@ -45,6 +45,12 @@ namespace BR_MediaAPI
 
     internal static class MediaLibraryFolderPanel
     {
+        internal static void Unregister(MediaTypeDefinition definition)
+        {
+            if (definition?.LibraryFolder != null)
+                ModsPanel.ModsPanelApi.UnregisterSection(definition.Key);
+        }
+
         internal static void Register(MediaTypeDefinition definition)
         {
             MediaLibraryFolderOptions options = definition.LibraryFolder;

@@ -112,6 +112,32 @@ namespace BR_MediaAPI
             Registered?.Invoke(definition);
         }
 
+        /// <summary>
+        /// Removes a custom media type and every shared API registration it owns.
+        /// Call this from a mod's OnDeinitializeMelon before a development hot reload.
+        /// </summary>
+        public static bool Unregister(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return false;
+
+            MediaTypeDefinition definition;
+            lock (Sync)
+            {
+                if (!ByKey.TryGetValue(key, out definition)) return false;
+                ByKey.Remove(definition.Key);
+                ById.Remove(definition.Id);
+                if (!string.IsNullOrWhiteSpace(definition.PlaceableId))
+                    ByPlaceableId.Remove(definition.PlaceableId);
+            }
+
+            if (routerReady) MediaLibraryRouter.UnRegister(definition.MediaType);
+            UnplacedMediaBoxSystem.Unregister(definition);
+            MediaLibraryFolderPanel.Unregister(definition);
+            MediaAvailabilityChanged?.Invoke();
+            logger?.Msg($"Unregistered {definition.DisplayName} ({definition.Key}, ID {definition.Id}).");
+            return true;
+        }
+
         public static bool TryGet(eMediaType type, out MediaTypeDefinition definition)
         {
             lock (Sync) return ById.TryGetValue((int)type, out definition);
