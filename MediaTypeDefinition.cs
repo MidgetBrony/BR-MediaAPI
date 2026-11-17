@@ -1,6 +1,8 @@
 using SteamShelf.Media;
 using SteamShelf.Placeables;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace BR_MediaAPI
@@ -33,6 +35,8 @@ namespace BR_MediaAPI
 
         /// <summary>Optional native ModsPanel folder picker, persistence, refresh, status, and Open Folder controls.</summary>
         public MediaLibraryFolderOptions LibraryFolder { get; set; }
+        /// <summary>Optional nested library tabs such as one tab per console or collection.</summary>
+        public IReadOnlyList<MediaLibraryGroupDefinition> LibraryGroups { get; set; }
 
         /// <summary>Adds a native BOXROOM-style box containing all currently unplaced items.</summary>
         public bool CreateUnplacedMediaBox { get; set; } = true;
@@ -53,6 +57,14 @@ namespace BR_MediaAPI
             if (ModelType == null || !typeof(IMediaItem).IsAssignableFrom(ModelType))
                 throw new ArgumentException("ModelType must implement IMediaItem.", nameof(ModelType));
             LibraryFolder?.Validate(this);
+            if (LibraryGroups != null)
+            {
+                foreach (MediaLibraryGroupDefinition group in LibraryGroups) group?.Validate();
+                string duplicate = LibraryGroups.Where(group => group != null)
+                    .GroupBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                    .FirstOrDefault(group => group.Count() > 1)?.Key;
+                if (duplicate != null) throw new ArgumentException($"Duplicate media library group key '{duplicate}'.", nameof(LibraryGroups));
+            }
             if (AllowOnShelves && ShelfFactory == null) throw new ArgumentNullException(nameof(ShelfFactory));
 
             bool hasAnyPlaceable = !string.IsNullOrWhiteSpace(PlaceableId) || PlaceableDataFactory != null || LoosePrefabFactory != null;

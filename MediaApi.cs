@@ -138,6 +138,32 @@ namespace BR_MediaAPI
             return true;
         }
 
+        /// <summary>
+        /// Replaces the nested library groups for a registered media type and
+        /// rebuilds its open media page immediately. Call from Unity's main thread.
+        /// </summary>
+        public static bool UpdateLibraryGroups(string key, IReadOnlyList<MediaLibraryGroupDefinition> groups)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return false;
+            MediaLibraryGroupDefinition[] replacement = (groups ?? Array.Empty<MediaLibraryGroupDefinition>())
+                .Where(group => group != null).ToArray();
+            foreach (MediaLibraryGroupDefinition group in replacement) group.Validate();
+            string duplicate = replacement.GroupBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault(group => group.Count() > 1)?.Key;
+            if (duplicate != null)
+                throw new ArgumentException($"Duplicate media library group key '{duplicate}'.", nameof(groups));
+
+            MediaTypeDefinition definition;
+            lock (Sync)
+            {
+                if (!ByKey.TryGetValue(key, out definition)) return false;
+                definition.LibraryGroups = replacement;
+            }
+            MediaTabsRuntime.RefreshLibraryGroups(definition);
+            logger?.Msg($"Updated {definition.DisplayName} library groups ({replacement.Length}).");
+            return true;
+        }
+
         public static bool TryGet(eMediaType type, out MediaTypeDefinition definition)
         {
             lock (Sync) return ById.TryGetValue((int)type, out definition);

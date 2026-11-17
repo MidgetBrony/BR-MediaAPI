@@ -29,6 +29,8 @@ namespace BR_MediaAPI
         public Func<string> GetStatus { get; set; }
 
         public bool ShowOpenFolderButton { get; set; } = true;
+        /// <summary>Hide the single-root controls when nested library groups provide their own folder controls.</summary>
+        public bool ShowRootControls { get; set; } = true;
         /// <summary>Optional additional settings rendered below the library controls.</summary>
         public ModsPanel.ModSection SettingsSection { get; set; }
 
@@ -54,7 +56,7 @@ namespace BR_MediaAPI
         internal static void Register(MediaTypeDefinition definition)
         {
             MediaLibraryFolderOptions options = definition.LibraryFolder;
-            if (options == null) return;
+            if (options == null || !options.ShowRootControls) return;
 
             ModsPanel.ModSection section = ModsPanel.ModsPanelApi
                 .RegisterSection(definition.Key, options.PanelTitle, options.PanelOrder)

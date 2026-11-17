@@ -79,6 +79,8 @@ namespace BR_MediaAPI
             Page page;
             if (definition.LibraryFolder?.SettingsSection != null)
                 definition.LibraryFolder.SettingsSection.VisibleInModSettings = true;
+            foreach (MediaLibraryGroupDefinition libraryGroup in definition.LibraryGroups ?? Array.Empty<MediaLibraryGroupDefinition>())
+                if (libraryGroup?.SettingsSection != null) libraryGroup.SettingsSection.VisibleInModSettings = false;
             try { page = new Page(definition, root, screen, button, group, originalButtons[0]); }
             catch
             {
@@ -125,6 +127,12 @@ namespace BR_MediaAPI
             Pages.Clear(); sidebarExits.Clear(); tabs = null; mediaContainer = null;
         }
 
+        internal static void RefreshLibraryGroups(MediaTypeDefinition definition)
+        {
+            Page page = Pages.FirstOrDefault(value => ReferenceEquals(value.Definition, definition));
+            page?.RefreshGroups();
+        }
+
         private sealed class Page
         {
             internal readonly MediaTypeDefinition Definition;
@@ -134,9 +142,12 @@ namespace BR_MediaAPI
             private readonly TMP_Text path, status, count;
             private readonly TMP_Text bodyTemplate;
             private readonly Button actionTemplate;
+            private readonly RectTransform groupsRoot;
             private string actionError;
             private string pendingPath;
             private readonly Button apply;
+            private readonly Dictionary<MediaLibraryGroupDefinition, GameObject> groupHosts = new Dictionary<MediaLibraryGroupDefinition, GameObject>();
+            private MediaLibraryGroupDefinition selectedGroup;
 
             internal Page(MediaTypeDefinition definition, RectTransform root, UI_Container screen,
                 Button button, UI_NavigationGroup group, Button template)
@@ -197,7 +208,13 @@ namespace BR_MediaAPI
                 layout.childForceExpandHeight = false; layout.childForceExpandWidth = true;
                 count = Label(content, "", 44);
                 Separator(content);
-                if (definition.LibraryFolder != null)
+                groupsRoot = Rect("Library Groups", content);
+                var groupsLayout = groupsRoot.gameObject.AddComponent<VerticalLayoutGroup>();
+                groupsLayout.childControlWidth = true; groupsLayout.childControlHeight = true;
+                groupsLayout.childForceExpandWidth = true; groupsLayout.childForceExpandHeight = false;
+                groupsRoot.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+                BuildGroups();
+                if (definition.LibraryFolder != null && definition.LibraryFolder.ShowRootControls)
                 {
                     Label(content, "Choose the folder containing your " + definition.DisplayName.ToLowerInvariant() + ".", 90);
                     Separator(content);
@@ -271,7 +288,7 @@ namespace BR_MediaAPI
                         openSize.minHeight = openSize.preferredHeight = 58;
                     }
                 }
-                else
+                else if (definition.LibraryGroups == null || definition.LibraryGroups.Count == 0)
                 {
                     status = Label(content, "Library folders are managed by " + definition.DisplayName + ".", 90);
                 }
@@ -288,17 +305,84 @@ namespace BR_MediaAPI
                 try
                 {
                     int total = Definition.Library.GetKnownItems()?.Count ?? 0;
-                    count.text = $"You currently have {total} {Definition.DisplayName.ToLowerInvariant()} ready to place.";
+                    if (selectedGroup != null)
+                    {
+                        int grouped = Definition.Library.GetKnownItems()?.Count(item => item != null && selectedGroup.Includes(item)) ?? 0;
+                        count.text = $"{grouped} {selectedGroup.DisplayName} item{(grouped == 1 ? string.Empty : "s")} ready to place · {total} total";
+                    }
+                    else count.text = $"You currently have {total} {Definition.DisplayName.ToLowerInvariant()} ready to place.";
                     if (path != null)
                     {
                         string saved = MediaLibraryFolderPanel.GetPath(Definition);
                         path.text = pendingPath ?? saved;
                         apply.interactable = !string.IsNullOrWhiteSpace(pendingPath) && pendingPath != saved;
                     }
-                    if (actionError != null) status.text = actionError;
-                    else if (Definition.LibraryFolder != null) status.text = MediaLibraryFolderPanel.GetStatus(Definition);
+                    if (status != null)
+                    {
+                        if (actionError != null) status.text = actionError;
+                        else if (Definition.LibraryFolder != null) status.text = MediaLibraryFolderPanel.GetStatus(Definition);
+                    }
                 }
-                catch (Exception exception) { status.text = "Could not refresh library status: " + exception.Message; }
+                catch (Exception exception)
+                {
+                    if (status != null) status.text = "Could not refresh library status: " + exception.Message;
+                    else MelonLogger.Warning($"Could not refresh {Definition.DisplayName} library page: {exception.Message}");
+                }
+            }
+
+            internal void RefreshGroups()
+            {
+                string selectedKey = selectedGroup?.Key;
+                groupHosts.Clear();
+                selectedGroup = null;
+                for (int i = groupsRoot.childCount - 1; i >= 0; i--)
+                    Object.Destroy(groupsRoot.GetChild(i).gameObject);
+                BuildGroups(selectedKey);
+            }
+
+            private void BuildGroups(string selectedKey = null)
+            {
+                if (Definition.LibraryGroups == null || Definition.LibraryGroups.Count == 0) return;
+                Label(groupsRoot, "Console", 38).fontStyle = FontStyles.Bold;
+                RectTransform tabsRow = Row(groupsRoot, "Library Group Tabs", 72);
+                HorizontalLayoutGroup tabsLayout = tabsRow.GetComponent<HorizontalLayoutGroup>();
+                tabsLayout.childForceExpandWidth = true;
+                tabsLayout.spacing = 8;
+                foreach (MediaLibraryGroupDefinition libraryGroup in Definition.LibraryGroups)
+                {
+                    if (libraryGroup == null) continue;
+                    ActionButton(tabsRow, libraryGroup.DisplayName, () => SelectGroup(libraryGroup));
+                    RectTransform host = Rect("Library Group " + libraryGroup.Key, groupsRoot);
+                    var size = host.gameObject.AddComponent<LayoutElement>();
+                    size.minHeight = 0; size.preferredHeight = -1; size.flexibleHeight = 0;
+                    var hostLayout = host.gameObject.AddComponent<VerticalLayoutGroup>();
+                    hostLayout.childControlWidth = true; hostLayout.childControlHeight = true;
+                    hostLayout.childForceExpandWidth = true; hostLayout.childForceExpandHeight = false;
+                    host.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+                    if (libraryGroup.SettingsSection != null)
+                    {
+                        libraryGroup.SettingsSection.VisibleInModSettings = false;
+                        ModsPanel.ModsPanelApi.RenderEmbeddedSection(libraryGroup.SettingsSection, host, bodyTemplate);
+                    }
+                    host.gameObject.SetActive(false);
+                    groupHosts.Add(libraryGroup, host.gameObject);
+                }
+                selectedGroup = Definition.LibraryGroups.FirstOrDefault(group => group != null &&
+                    string.Equals(group.Key, selectedKey, StringComparison.OrdinalIgnoreCase))
+                    ?? Definition.LibraryGroups.FirstOrDefault(group => group != null);
+                if (selectedGroup != null)
+                {
+                    groupHosts[selectedGroup].SetActive(true);
+                    Screen.SetDefaultSelectable(tabsRow.GetComponentInChildren<Button>());
+                }
+                Separator(groupsRoot);
+            }
+
+            private void SelectGroup(MediaLibraryGroupDefinition libraryGroup)
+            {
+                selectedGroup = libraryGroup;
+                foreach (KeyValuePair<MediaLibraryGroupDefinition, GameObject> pair in groupHosts)
+                    if (pair.Value != null) pair.Value.SetActive(ReferenceEquals(pair.Key, libraryGroup));
             }
 
             private void Browse() => Run(() =>
@@ -352,6 +436,8 @@ namespace BR_MediaAPI
             {
                 if (Definition.LibraryFolder?.SettingsSection != null)
                     Definition.LibraryFolder.SettingsSection.VisibleInModSettings = true;
+                foreach (MediaLibraryGroupDefinition libraryGroup in Definition.LibraryGroups ?? Array.Empty<MediaLibraryGroupDefinition>())
+                    if (libraryGroup?.SettingsSection != null) libraryGroup.SettingsSection.VisibleInModSettings = true;
                 if (Button != null) Object.Destroy(Button.gameObject); if (root != null) Object.Destroy(root.gameObject);
             }
         }

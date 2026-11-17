@@ -3,6 +3,7 @@ using MelonLoader;
 using SteamShelf;
 using SteamShelf.Media;
 using SteamShelf.Input;
+using SteamShelf.Items;
 using SteamShelf.Placeables;
 using SteamShelf.PlayerTools;
 using SteamShelf.Save;
@@ -12,7 +13,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.1.16", "Rusty", null)]
+[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.1.19", "Rusty", null)]
 [assembly: MelonGame("NestedLoop", "BOXROOM")]
 [assembly: MelonAdditionalDependencies("ModsPanel")]
 
@@ -119,6 +120,12 @@ namespace BR_MediaAPI
             __result = UnplacedMediaBoxSystem.GetSprite();
             return false;
         }
+    }
+
+    [HarmonyPatch(typeof(CatalogueData), nameof(CatalogueData.GenerateModsPages))]
+    internal static class RestoreSourceBoxesToModsCataloguePatch
+    {
+        private static void Prefix() => MediaApi.RegisterSourceBoxes();
     }
 
     [HarmonyPatch(typeof(PlayerInteractionTool), "OnMediaInHandChanged")]

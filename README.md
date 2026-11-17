@@ -10,7 +10,28 @@ Registered media types get a library settings tab beside Games, CDs and Videos.
 Pages use the native CD library card's background, heading, fonts, separators
 and action-button style. They show the library count and, when `LibraryFolder`
 is supplied, the saved path, Browse, status, Refresh and optional Open Folder.
-There is no item browser, search box or pagination.
+The base page does not impose an item browser, search box or pagination.
+
+`LibraryGroups` optionally adds nested category tabs inside one media page. Each
+group supplies a stable key, caption, item predicate, and optional embedded
+ModsPanel section. This lets a consumer add console, format, genre, or collection
+tabs without allocating multiple media IDs. The page shows both the selected
+group count and total library count. Set `LibraryFolder.ShowRootControls = false`
+when groups own their individual folder controls; bootstrap loading still uses
+the same library callback.
+
+Call `MediaApi.UpdateLibraryGroups(key, groups)` on Unity's main thread when the
+available categories change. An open media page rebuilds those nested tabs
+immediately and preserves the selected group when it still exists.
+
+```csharp
+MediaApi.UpdateLibraryGroups("com.example.movies", currentGroups);
+```
+
+The replacement list is validated before it is applied. Removed groups disappear
+from an already-open page, new groups appear immediately, and a removed selection
+falls back to the first remaining group. Registered media identity, library items,
+source boxes and placed objects are not re-registered or recreated.
 
 `LibraryFolder.SettingsSection` can supply additional ModsPanel controls below
 the library controls. The page scrolls and follows controller selection. A mod
@@ -29,6 +50,7 @@ In-game visual and controller validation of this revision is pending.
 4. `SharedMediaCasePrefabs.Configure(definition)` for the standard case, or custom prefab factories.
 5. Optionally, an `OnOpen` action for Play, Read, Listen, etc.
 6. Optionally, `LibraryFolder` settings for a native ModsPanel folder selector.
+7. Optionally, `LibraryGroups` for nested category tabs with group-specific controls.
 
 By default, the API also creates a native **Unplaced Media Box** in BOXROOM's furniture catalogue. It borrows the built-in CD Album Box presentation and automatically fills it with every available, unplaced item from the registered library. Media mods do not implement catalogue registration, container filling, reservations, refill, or box save/load.
 

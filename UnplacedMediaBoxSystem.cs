@@ -28,7 +28,15 @@ namespace BR_MediaAPI
         {
             if (definition == null || !definition.CreateUnplacedMediaBox || !Singleton<PlaceableManager>.HasInstance()) return;
             PlaceableManager manager = Singleton<PlaceableManager>.Instance;
-            if (BoxData.ContainsKey(definition.Id)) return;
+
+            // BOXROOM replaces its mod-placeable list when the catalogue is refreshed.
+            // Keep the stable source-box data, but restore it to the new lists.
+            if (BoxData.TryGetValue(definition.Id, out PlaceableData registered))
+            {
+                Definitions[definition.SourceBoxId] = definition;
+                EnsureCatalogued(manager, registered);
+                return;
+            }
 
             albumTemplate ??= manager.GetDataByID(AlbumBoxId);
             if (albumTemplate == null) return;
@@ -39,6 +47,7 @@ namespace BR_MediaAPI
             {
                 Definitions[boxId] = definition;
                 BoxData[definition.Id] = existing;
+                EnsureCatalogued(manager, existing);
                 return;
             }
 
@@ -58,10 +67,32 @@ namespace BR_MediaAPI
                 return;
             }
 
-            Definitions.Add(boxId, definition);
-            BoxData.Add(definition.Id, data);
-            mods.Insert(0, data);
-            manager.AllPlaceables.Insert(0, data);
+            Definitions[boxId] = definition;
+            BoxData[definition.Id] = data;
+            EnsureCatalogued(manager, data);
+        }
+
+        private static void EnsureCatalogued(PlaceableManager manager, PlaceableData data)
+        {
+            if (manager == null || data == null) return;
+            ApplyNativeContainerClassification(data);
+            var mods = AccessTools.Field(typeof(PlaceableManager), "modsPlaceables")?.GetValue(manager) as List<PlaceableData>;
+            if (mods == null)
+            {
+                MelonLogger.Error($"Could not register {data.DisplayName}: mod catalogue list is unavailable.");
+                return;
+            }
+            if (!mods.Contains(data)) mods.Insert(0, data);
+            if (!manager.AllPlaceables.Contains(data)) manager.AllPlaceables.Insert(0, data);
+        }
+
+        private static void ApplyNativeContainerClassification(PlaceableData data)
+        {
+            if (data == null || albumTemplate == null) return;
+            data.Tags = albumTemplate.Tags == null ? null : (ItemTag[])albumTemplate.Tags.Clone();
+            data.BakedPrefabComponents = albumTemplate.BakedPrefabComponents == null
+                ? null
+                : (string[])albumTemplate.BakedPrefabComponents.Clone();
         }
 
         internal static void Unregister(MediaTypeDefinition definition)
