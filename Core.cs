@@ -178,6 +178,66 @@ namespace BR_MediaAPI
         }
     }
 
+    /// <summary>
+    /// BOXROOM normally creates a fresh PlaceableSaveState after committing a new
+    /// loose object. Custom media has already serialized its identity into the
+    /// provisional state prepared by ApplyMedia, so promote that opaque CustomData
+    /// into an authoritative state before BOXROOM links the placed instance.
+    /// </summary>
+    [HarmonyPatch(typeof(PlayerInteractionTool), "PlaceHeld")]
+    internal static class PrepareCustomMediaSaveStatePatch
+    {
+        private static void Prefix(
+            PlayerInteractionTool __instance,
+            GameObject ___heldPrefab,
+            ref PlaceableSaveState ___heldSaveState)
+        {
+            if (___heldSaveState != null || ___heldPrefab == null)
+                return;
+
+            ICustomMediaProp prop = ___heldPrefab
+                .GetComponents<MonoBehaviour>()
+                .OfType<ICustomMediaProp>()
+                .FirstOrDefault();
+            PlaceableSaveState provisional = prop?.SaveState;
+            IMediaItem item = prop?.MediaItem;
+            if (provisional == null ||
+                string.IsNullOrWhiteSpace(provisional.CustomData) ||
+                item == null ||
+                !MediaApi.TryGet(item.Ref.Type, out MediaTypeDefinition definition) ||
+                !definition.UseGenericInteractionLifecycle)
+            {
+                return;
+            }
+
+            object controller = AccessTools
+                .Field(typeof(PlayerTool), "controller")?
+                .GetValue(__instance);
+            ObjectPlacer placer = GetMember(controller, "ObjectPlacer") as ObjectPlacer;
+            PlaceableData placeableData = definition.GetPlaceableData();
+            if (placer == null || !placer.IsActive || placeableData == null)
+                return;
+
+            var authoritative = new PlaceableSaveState(
+                placeableData.ID,
+                placer.PreviewPosition,
+                placer.PreviewRotation,
+                placer.PreviewScale,
+                provisional.CustomData,
+                provisional.PaintMaterialID);
+
+            prop.LinkSaveState(authoritative);
+            ___heldSaveState = authoritative;
+        }
+
+        private static object GetMember(object instance, string name)
+        {
+            if (instance == null) return null;
+            return AccessTools.Property(instance.GetType(), name)?.GetValue(instance) ??
+                   AccessTools.Field(instance.GetType(), name)?.GetValue(instance);
+        }
+    }
+
     [HarmonyPatch(typeof(PlayerInteractionTool), "PickupItem", new[] { typeof(PlacementTag) })]
     internal static class CustomLoosePickupPatch
     {
