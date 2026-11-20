@@ -13,7 +13,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.1.22", "Rusty", null)]
+[assembly: MelonInfo(typeof(BR_MediaAPI.Core), "BR-MediaAPI", "1.1.23", "Rusty", null)]
 [assembly: MelonGame("NestedLoop", "BOXROOM")]
 [assembly: MelonAdditionalDependencies("ModsPanel")]
 
@@ -42,6 +42,11 @@ namespace BR_MediaAPI
         {
             CustomMediaBoxSearch.Update();
             MediaTabsRuntime.Tick();
+        }
+
+        public override void OnSceneWasLoaded(int buildIndex, string sceneName)
+        {
+            MediaApi.ResetRuntimePlacementState();
         }
     }
 

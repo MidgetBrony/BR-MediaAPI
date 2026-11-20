@@ -207,6 +207,39 @@ namespace BR_MediaAPI
         internal static void SetLogger(MelonLogger.Instance instance) => logger = instance;
         internal static void NotifyMediaAvailabilityChanged() => MediaAvailabilityChanged?.Invoke();
 
+        /// <summary>
+        /// Placement flags describe the active room, not the persistent library.
+        /// Clear them before BOXROOM reconstructs a newly loaded room; shelves and
+        /// loose props will then mark only the items restored into that room.
+        /// </summary>
+        internal static void ResetRuntimePlacementState()
+        {
+            MediaTypeDefinition[] definitions;
+            lock (Sync) definitions = ById.Values.ToArray();
+
+            int reset = 0;
+            foreach (MediaTypeDefinition definition in definitions)
+            {
+                try
+                {
+                    foreach (IMediaItem item in definition.Library.GetKnownItems())
+                    {
+                        if (item == null) continue;
+                        item.IsSpawned = false;
+                        item.IsInHand = false;
+                        reset++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger?.Warning($"Could not reset {definition.DisplayName} placement state: {ex.Message}");
+                }
+            }
+
+            if (reset > 0)
+                logger?.Msg($"Reset transient placement state for {reset} custom media item(s).");
+        }
+
         internal static void AttachRegisteredLibraries()
         {
             lock (Sync)
