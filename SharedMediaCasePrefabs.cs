@@ -161,7 +161,17 @@ namespace BR_MediaAPI
             ApplyCover();
         }
 
-        public void LinkSaveState(PlaceableSaveState state) => saveState = state;
+        public void LinkSaveState(PlaceableSaveState state)
+        {
+            // BOXROOM supplies a fresh authoritative state on first placement.
+            // Preserve the MediaRef written by ApplyMedia before replacing the
+            // provisional state, otherwise the saved case has no identity to
+            // restore on the next room load.
+            if (state != null && string.IsNullOrWhiteSpace(state.CustomData) &&
+                saveState != null && !string.IsNullOrWhiteSpace(saveState.CustomData))
+                state.CustomData = saveState.CustomData;
+            saveState = state;
+        }
         public void RefreshSaveStateReference(PlaceableSaveState state) => saveState = state;
         public void OnPlaced() { Restore(); if (item != null) { item.IsSpawned = true; item.IsInHand = false; ApplyCover(); } }
         public void OnPickedUp() { Restore(); if (item != null) item.IsInHand = true; }
